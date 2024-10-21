@@ -1,3 +1,5 @@
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
     repositories {
         google {
@@ -21,4 +23,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "p2p-messenger"
 include(":app")
- 
+include(":core:uikit")
+include(":feature:group_list")
+include(":feature:main")
+include(":core:navigation")

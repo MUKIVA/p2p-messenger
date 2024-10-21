@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="def_container_gap">8dp</dimen>
+    <dimen name="def_container_horizontal_padding">16dp</dimen>
+</resources>

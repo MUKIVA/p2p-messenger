@@ -1,4 +1,4 @@
-package com.mukiva.p2p_messenger.ui.theme
+package com.mukiva.p2pmessenger.core.uikit.theme
 
 import androidx.compose.ui.graphics.Color
 

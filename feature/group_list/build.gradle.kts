@@ -1,28 +1,20 @@
 plugins {
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
-    namespace = "com.mukiva.p2p_messenger"
+    namespace = "com.mukiva.p2pmessenger.feature.group_list"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.mukiva.p2p_messenger"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
         }
     }
     compileOptions {
@@ -39,14 +31,14 @@ android {
 
 dependencies {
 
+    implementation(projects.core.uikit)
+    implementation(projects.core.navigation)
+    
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
+    implementation(libs.material)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-
-    implementation(projects.core.uikit)
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="uikit_default_error_placeholder_info">Ой........</string>
+    <string name="uikit_default_empty_placeholder_info">Чет пустовато…</string>
+    <string name="uikit_default_retry_button_text">Еще раз!</string>
+</resources>

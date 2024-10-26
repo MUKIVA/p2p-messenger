@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="groups_feature_name">Чаты</string>
+    <string name="groups_feature_loading_placeholder_text">Загружаем</string>
+    <string name="groups_feature_error_placeholder_text">Что-то пошло не так...</string>
+    <string name="groups_feature_empty_placeholder_text">Чатов еще не добавлено</string>
 </resources>

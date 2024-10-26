@@ -29,4 +29,9 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
+
 include(":core:uikit")
+include(":core:navigation")
+
+include(":feature:main")
+include(":feature:groups")

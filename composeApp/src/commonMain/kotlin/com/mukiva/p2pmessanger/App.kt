@@ -2,11 +2,15 @@ package com.mukiva.p2pmessanger
 
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.*
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.Modifier
+import com.mukiva.feature.main.navigation.MainDestination
+import org.koin.compose.KoinContext
 
 @Composable
-@Preview
 fun App() {
     MaterialTheme {
+        KoinContext {
+            MainDestination.screen(null, Modifier)
+        }
     }
 }

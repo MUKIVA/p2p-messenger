@@ -1,4 +1,4 @@
-package com.mukiva.feature.groups.ui
+package com.mukiva.feature.groups.ui.grouplist
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable

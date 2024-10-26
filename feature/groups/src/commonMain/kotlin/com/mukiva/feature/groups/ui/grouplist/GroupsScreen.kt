@@ -1,11 +1,15 @@
-package com.mukiva.feature.groups.ui
+package com.mukiva.feature.groups.ui.grouplist
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -35,7 +39,12 @@ internal fun GroupsScreen(
     val state by vm.state.collectAsState()
 
     Scaffold(
-        topBar = { GroupsTopAppBar(title = stringResource(Res.string.groups_feature_name)) },
+        topBar = {
+            GroupsTopAppBar(
+                title = stringResource(Res.string.groups_feature_name),
+                onAddChat = vm::goAddGroup
+            )
+        },
         modifier = modifier
     ) { paddingValues ->
         when (val actualState = state) {
@@ -57,9 +66,18 @@ internal fun GroupsScreen(
 internal fun GroupsTopAppBar(
     title: String,
     modifier: Modifier = Modifier,
+    onAddChat: () -> Unit = {}
 ) = Column(modifier = modifier) {
     TopAppBar(
-        title = { Text(text = title) }
+        title = { Text(text = title) },
+        actions = {
+            IconButton(onClick = onAddChat) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null
+                )
+            }
+        }
     )
     HorizontalDivider()
 }

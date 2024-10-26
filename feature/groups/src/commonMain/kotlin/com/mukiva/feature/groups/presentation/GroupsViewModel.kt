@@ -2,8 +2,11 @@ package com.mukiva.feature.groups.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mukiva.core.navigation.INavHost
 import com.mukiva.feature.groups.data.IGroupsRepository
+import com.mukiva.feature.groups.presentation.delegates.GroupsNavigationDelegateImpl
 import com.mukiva.feature.groups.presentation.delegates.IGroupsControlDelegate
+import com.mukiva.feature.groups.presentation.delegates.IGroupsNavigationDelegate
 import com.mukiva.feature.groups.presentation.state.IGroupsState
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
@@ -18,10 +21,12 @@ import kotlinx.coroutines.launch
 
 internal class GroupsViewModel(
     groupsControlDelegate: IGroupsControlDelegate,
-    groupsRepository: IGroupsRepository
+    groupsRepository: IGroupsRepository,
+    private val navHost: INavHost
 )
     : ViewModel()
     , IGroupsControlDelegate by groupsControlDelegate
+    , IGroupsNavigationDelegate by GroupsNavigationDelegateImpl(navHost)
 {
     val state: StateFlow<IGroupsState>
         get() = mState.asStateFlow()
@@ -42,4 +47,5 @@ internal class GroupsViewModel(
             }
         }
     }
+
 }

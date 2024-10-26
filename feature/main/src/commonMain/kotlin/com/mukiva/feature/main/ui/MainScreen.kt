@@ -16,9 +16,9 @@ internal fun MainScreen(
     vm: MainViewModel = koinViewModel()
 ) {
 
-    val state by vm.state.collectAsState()
+    val state = vm.state.collectAsState()
 
-    val topDestination = state.onTopNavigationStack
+    val topDestination = state.value.onTopNavigationStack
 
     Box(
         contentAlignment = Alignment.Center,

@@ -1,5 +1,6 @@
 package com.mukiva.feature.main.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -25,6 +26,10 @@ internal fun MainScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        topDestination?.screen?.invoke(null, Modifier)
+
+        AnimatedContent(topDestination) { targetState ->
+            targetState?.screen?.invoke(null, Modifier)
+        }
+
     }
 }

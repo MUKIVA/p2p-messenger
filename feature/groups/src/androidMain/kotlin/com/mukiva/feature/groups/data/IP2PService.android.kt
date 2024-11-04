@@ -1,81 +1,53 @@
 package com.mukiva.feature.groups.data
 
-import android.annotation.SuppressLint
-import android.content.BroadcastReceiver
 import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.util.Log
 import androidx.activity.ComponentActivity
-import java.net.Socket
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 actual class P2PService(
-    private val managerFactory: WifiP2PManagerFactory
-) : IP2PService {
-
-    private val mPeers = mutableListOf<WifiP2pDevice>()
-    private val mDataSetChangedListeners = mutableListOf<IP2PService.IPeerListChangedCallback>()
-    private val mMessageListeners = mutableListOf<(String) -> Unit>()
-    private val mOnClientCreated = mutableListOf<() -> Unit>()
+    private val managerFactory: WifiP2PManagerFactory,
+    private val commonNotifier: CommonNotifier = CommonNotifier()
+) : IP2PService, ICommonNotifier by commonNotifier {
 
     private var manager: WifiP2pManager? = null
     private var channel: WifiP2pManager.Channel? = null
-    private var receiver: BroadcastReceiver? = null
+    private var receiver: P2PReceiver? = null
 
-    private var serverSideThread: ServerSideThread? = null
-    private var clientSideThread: ClientSideThread? = null
-    private var messageSender: MessageSender? = null
+    private var mConnectionHolder: IConnectionHolder? = null
 
-    private val handler = RecievMessageHandler(
-        onMessageReceived = ::notifyMessageReceived
-    )
-
-    private val mPeerListener = WifiP2pManager.PeerListListener { peers ->  
-        val refreshedPeers = peers.deviceList
-        if (refreshedPeers != peers) {
-            mPeers.clear()
-            mPeers.addAll(refreshedPeers)
-        }
-
-        notifyDataSetChanged()
-        Log.d("P2PService", "Data set changed")
+    private val receiverCallbacks = object : P2PReceiver.Callbacks {
+        override val onP2PStateChanged: (isEnabled: Boolean) -> Unit
+            get() = commonNotifier::notifyWifiStateChanged
+        override val onPeerListChanged: (Collection<WifiP2pDevice>) -> Unit
+            get() = commonNotifier::notifyPeerListChanged
+        override val onConnectionSuccess: (info: WifiP2pInfo?) -> Unit
+            get() = ::handleConnectionSuccess
+        override val onConnectionLost: () -> Unit
+            get() = ::handleConnectionLost
+        override val onThisDeviceChanged: (WifiP2pDevice?) -> Unit
+            get() = {
+                // Nothing to do
+            }
     }
 
-    private val mConnectionListener = WifiP2pManager.ConnectionInfoListener { info ->
-
-        val groupOwnerAddress = info.groupOwnerAddress
-
-        if (info.groupFormed && info.isGroupOwner) {
-            serverSideThread = ServerSideThread(
-                onSocketCreated = { socket: Socket ->
-                    messageSender = MessageSender(socket, handler)
-                }
-            )
-            serverSideThread?.start()
-        } else if (info.groupFormed) {
-            clientSideThread = ClientSideThread(
-                groupOwnerAddress,
-                onSocketCreated = { socket ->
-                    messageSender = MessageSender(socket, handler)
-                }
-            )
-            clientSideThread?.start()
-        }
-
-        mOnClientCreated.onEach { listener ->
-            listener.invoke()
-        }
-    }
-
-    override fun discoverPeers(callbacks: IP2PService.IDiscoverPeersCallback) {
+    override fun discoverPeers(
+        onSuccess: () -> Unit,
+        onFailure: (IP2PService.DiscoveryError) -> Unit
+    ) {
         manager?.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
-                callbacks.onSuccess()
+                onSuccess()
             }
 
             override fun onFailure(reason: Int) {
-                callbacks.onFailure(mapReasonToCommon(reason))
+                onFailure(mapReasonToCommon(reason))
             }
         })
     }
@@ -90,28 +62,37 @@ actual class P2PService(
             wps.setup = WpsInfo.PBC
         }
 
+        manager?.requestGroupInfo(channel) { info ->
+            println()
+        }
+
         manager?.connect(channel, config, object : WifiP2pManager.ActionListener{
             override fun onSuccess() {
+                Log.d("P2PService", "Connection success")
+
                 onSuccess()
             }
 
             override fun onFailure(reason: Int) {
+                Log.d("P2PService", "Connection Fail")
                 onFailure(mapReasonToCommon(reason))
             }
-
         })
     }
 
-    override suspend fun sendMessage(message: String) {
-        messageSender?.write(message.toByteArray())
+    override fun sendMessage(message: String) {
+        mConnectionHolder?.sendMessage(message)
     }
 
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    override fun closeConnection() {
+        mConnectionHolder?.cancel()
+    }
+
     fun onResume(activity: ComponentActivity) = with(activity) {
         receiver?.also { receiver ->
             registerReceiver(
                 receiver,
-                P2PReceiver.intentFilter
+                P2PReceiver.intentFilter,
             )
         }
     }
@@ -126,33 +107,13 @@ actual class P2PService(
         manager = managerFactory.create()
         channel = manager?.initialize(this, mainLooper, null)
         channel?.also { channel ->
-            receiver = P2PReceiver(manager!!, channel, mPeerListener, mConnectionListener)
+            receiver = P2PReceiver(
+                manager = manager!!,
+                channel = channel,
+                callbacks = receiverCallbacks
+            )
         }
     }
-
-    override fun addListener(listener: IP2PService.IPeerListChangedCallback) {
-        mDataSetChangedListeners.add(listener)
-    }
-
-    override fun addMessageListener(listener: (String) -> Unit) {
-        mMessageListeners.add(listener)
-    }
-
-    override fun addOnClientCreatedListener(listener: () -> Unit) {
-        mOnClientCreated.add(listener)
-    }
-
-    private fun notifyDataSetChanged() {
-        mDataSetChangedListeners.onEach { listener ->
-            val commonList = mPeers.map(::mapToCommon)
-            listener.onPeerListChanged(commonList)
-        }
-    }
-
-    private fun mapToCommon(item: WifiP2pDevice) = IP2PService.PeerInfo(
-        deviceName = item.deviceName,
-        deviceAddress = item.deviceAddress
-    )
 
     private fun mapReasonToCommon(reason: Int) = when (reason) {
         WifiP2pManager.BUSY -> IP2PService.DiscoveryError.BUSY
@@ -160,9 +121,38 @@ actual class P2PService(
         else -> IP2PService.DiscoveryError.UNSUPPORTED
     }
 
-    private fun notifyMessageReceived(msg: String) {
-        mMessageListeners.onEach { listener ->
-            listener.invoke(msg)
+    private fun handleConnectionLost() {
+        closeConnection()
+        commonNotifier
+            .notifyConnectionStatusChanged(IConnectionStatus.Lost)
+    }
+
+    private fun handleConnectionSuccess(info: WifiP2pInfo?) {
+        val groupOwnerAddress = info?.groupOwnerAddress
+            ?: return
+
+        Log.d("ConnectionSuccess", "$groupOwnerAddress")
+
+        if (mConnectionHolder != null) {
+            return
         }
+
+        if (info.groupFormed && info.isGroupOwner) {
+            // Телефон выступает в роли хоста
+            mConnectionHolder = MessagingServer(
+                hostAddress = groupOwnerAddress,
+                onMessageReceived = commonNotifier::notifyNewMessage
+            )
+            mConnectionHolder?.start()
+        } else if (info.groupFormed) {
+            // Телефон выступает в роли клиента
+            mConnectionHolder = MessagingClient(
+                hostAddress = groupOwnerAddress.hostAddress ?: "localhost",
+                onMessageReceived = commonNotifier::notifyNewMessage
+            )
+            mConnectionHolder?.start()
+        }
+
+        commonNotifier.notifyConnectionStatusChanged(IConnectionStatus.Success)
     }
 }

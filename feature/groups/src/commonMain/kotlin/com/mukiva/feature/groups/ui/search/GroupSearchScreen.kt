@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -44,6 +45,13 @@ internal fun GroupSearchScreen(
 ) {
     val state by vm.state.collectAsState()
 
+    LaunchedEffect(state) {
+        when (state) {
+            ISearchState.Init -> vm.discoverPeers()
+            else -> {}
+        }
+    }
+
     Scaffold(
         topBar = {
             GroupSearchTopAppBar(
@@ -60,7 +68,10 @@ internal fun GroupSearchScreen(
                 onItemClick = vm::connect
             )
             ISearchState.Error ->
-                GroupSearchError(Modifier.padding(paddingValues))
+                GroupSearchError(
+                    modifier = Modifier.padding(paddingValues),
+                    onButtonClick = vm::discoverPeers
+                )
             ISearchState.Init ->
                 LoadingPlaceholder(Modifier.padding(paddingValues))
             ISearchState.Loading ->
@@ -95,8 +106,9 @@ internal fun GroupSearchTopAppBar(
 
 @Composable
 internal fun GroupSearchError(
-    modifier: Modifier = Modifier
-) = ErrorPlaceholder(modifier = modifier)
+    modifier: Modifier = Modifier,
+    onButtonClick: () -> Unit
+) = ErrorPlaceholder(modifier = modifier, onButtonClick = onButtonClick)
 
 @Composable
 internal fun GroupSearchUnsupported(

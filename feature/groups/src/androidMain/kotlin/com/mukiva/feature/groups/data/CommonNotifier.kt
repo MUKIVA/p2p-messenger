@@ -1,6 +1,7 @@
 package com.mukiva.feature.groups.data
 
 import android.net.wifi.p2p.WifiP2pDevice
+import android.util.Log
 import com.mukiva.feature.groups.data.IP2PService.PeerInfo
 
 class CommonNotifier : ICommonNotifier {
@@ -52,7 +53,9 @@ class CommonNotifier : ICommonNotifier {
     }
 
     private fun mapToCommon(item: WifiP2pDevice) = PeerInfo(
-        deviceName = item.deviceName,
+        deviceName = item.deviceName + " | " + item.deviceAddress,
         deviceAddress = item.deviceAddress
-    )
+    ).also { device ->
+        Log.d("CommonNotifier", "$device")
+    }
 }

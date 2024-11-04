@@ -10,54 +10,58 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.Socket
 
-class Messenger(
+class ClientHandler(
     private val socket: Socket
 ) {
 
-    val recievedMessageFlow: SharedFlow<String>
+    val receivedMessageFlow: SharedFlow<String>
         get() = mReceivedMessageFlow.asSharedFlow()
 
-    private val mMessageSenderScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
-    private val mInputStream = socket.getInputStream()
-    private val mOutputStream = socket.getOutputStream()
+    private val mClientHandlerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val mReceivedMessageFlow = MutableSharedFlow<String>()
 
-    init {
-        mMessageSenderScope.launch {
-            startReceive()
-        }
-    }
+    private val mInputStream: InputStream = socket.getInputStream()
+    private val mOutputStream: OutputStream = socket.getOutputStream()
 
     fun sendMessage(message: ByteArray) {
-        mMessageSenderScope.launch {
+        mClientHandlerScope.launch {
             mOutputStream.write(message)
         }
     }
 
-    private suspend fun startReceive() = withContext(Dispatchers.IO) {
+    fun startReceive() {
+        mClientHandlerScope.launch {
+            startReceiveSuspend()
+        }
+    }
+
+    private suspend fun startReceiveSuspend() {
         val buffer = ByteArray(1024)
-        while (true) {
-            var bytes: Int
-            try {
-                bytes = mInputStream.read(buffer)
-
-                if (bytes > 0) {
-                    val tmpMessage = String(buffer, 0, bytes)
-                    mReceivedMessageFlow.emit(tmpMessage)
-                }
-
-            } catch (e: IOException) {
-                e.printStackTrace()
+        try {
+            while (socket.isConnected) {
+                handle(buffer)
             }
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
+
+    private suspend fun handle(buffer: ByteArray) = withContext(Dispatchers.IO) {
+        val bytes = mInputStream.read(buffer)
+
+        if (bytes > 0) {
+            val tmpMessage = String(buffer, 0, bytes)
+            mReceivedMessageFlow.emit(tmpMessage)
         }
     }
 
     fun stop() {
-        mMessageSenderScope.cancel()
+        mClientHandlerScope.cancel()
     }
 
 }

@@ -2,7 +2,6 @@ package com.mukiva.p2pmessanger.di
 
 import com.mukiva.core.navigation.INavBackInterceptor
 import com.mukiva.core.navigation.PlatformNavInterceptor
-import com.mukiva.feature.groups.data.IP2PService
 import com.mukiva.feature.groups.data.P2PService
 import com.mukiva.feature.groups.data.WifiP2PManagerFactory
 import org.koin.core.module.Module
@@ -15,7 +14,6 @@ actual val platformModules: Module
     get() = module {
         singleOf(::PlatformNavInterceptor)
             .bind(INavBackInterceptor::class)
-        singleOf(::P2PService)
-            .bind(IP2PService::class)
+        single { P2PService(get()) }
         factoryOf(::WifiP2PManagerFactory)
     }

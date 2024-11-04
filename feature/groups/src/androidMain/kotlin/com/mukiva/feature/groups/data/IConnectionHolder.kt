@@ -1,5 +1,7 @@
 package com.mukiva.feature.groups.data
 
 interface IConnectionHolder {
-    fun stop()
+    fun cancel()
+    fun start()
+    fun sendMessage(message: String)
 }

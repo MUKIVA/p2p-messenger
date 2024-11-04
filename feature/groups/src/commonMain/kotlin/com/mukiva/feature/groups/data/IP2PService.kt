@@ -1,5 +1,19 @@
 package com.mukiva.feature.groups.data
 
+import com.mukiva.feature.groups.data.IP2PService.PeerInfo
+
+interface ICommonNotifier {
+    fun addPeerListListener(listener: (List<PeerInfo>) -> Unit)
+    fun addWifiStateListener(listener: (Boolean) -> Unit)
+    fun addConnectionStatusListener(listener: (IConnectionStatus) -> Unit)
+    fun addMessageListener(listener: (String) -> Unit)
+}
+
+sealed interface IConnectionStatus {
+    data object Success : IConnectionStatus
+    data object Lost : IConnectionStatus
+}
+
 interface IP2PService {
 
     enum class DiscoveryError {
@@ -12,26 +26,20 @@ interface IP2PService {
         val deviceName: String,
         val deviceAddress: String
     )
-
-    interface IDiscoverPeersCallback {
-        fun onSuccess()
-        fun onFailure(reason: DiscoveryError)
-    }
-
-    interface IPeerListChangedCallback {
-        fun onPeerListChanged(list: List<PeerInfo>)
-    }
-
-    fun addListener(listener: IPeerListChangedCallback)
-    fun addMessageListener(listener: (String) -> Unit)
-    fun addOnClientCreatedListener(listener: () -> Unit)
-    fun discoverPeers(callbacks: IDiscoverPeersCallback)
+    
+    fun discoverPeers(
+        onSuccess: () -> Unit,
+        onFailure: (DiscoveryError) -> Unit
+    )
     fun connect(
         device: PeerInfo,
         onSuccess: () -> Unit,
         onFailure: (DiscoveryError) -> Unit
     )
-    suspend fun sendMessage(message: String)
+    
+    fun sendMessage(message: String)
+
+    fun closeConnection()
 }
 
-expect class P2PService : IP2PService
+expect class P2PService : IP2PService, ICommonNotifier

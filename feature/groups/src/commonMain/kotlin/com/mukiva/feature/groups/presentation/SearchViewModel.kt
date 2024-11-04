@@ -2,6 +2,7 @@ package com.mukiva.feature.groups.presentation
 
 import androidx.lifecycle.ViewModel
 import com.mukiva.core.navigation.INavHost
+import com.mukiva.feature.groups.data.IConnectionStatus
 import com.mukiva.feature.groups.data.IP2PService
 import com.mukiva.feature.groups.data.P2PService
 import com.mukiva.feature.groups.navigation.ChatDestination
@@ -22,7 +23,7 @@ sealed interface ISearchState {
 
 internal class SearchViewModel(
     private val navHost: INavHost,
-    private val p2PService: P2PService
+    private val p2pService: P2PService
 ) : ViewModel(), INavHost by navHost {
 
     val state: StateFlow<ISearchState>
@@ -31,36 +32,25 @@ internal class SearchViewModel(
     private val mState = MutableStateFlow<ISearchState>(ISearchState.Init)
 
     init {
-
-        p2PService.addListener(object : IP2PService.IPeerListChangedCallback {
-            override fun onPeerListChanged(list: List<IP2PService.PeerInfo>) {
-                handleDeviceListUpdate(list)
-            }
-        })
-
-        p2PService.discoverPeers(object : IP2PService.IDiscoverPeersCallback {
-            override fun onSuccess() {
-                println()
-            }
-
-            override fun onFailure(reason: IP2PService.DiscoveryError) {
-                handleError(reason)
-            }
-        })
-
-        p2PService.addOnClientCreatedListener(::onClientCreate)
-
+        p2pService.addPeerListListener(::handleDeviceListUpdate)
+        p2pService.addConnectionStatusListener(::handleConnectionStatusChange)
     }
 
     fun connect(device: IP2PService.PeerInfo) {
-        p2PService.connect(
+        p2pService.connect(
             device = device,
-            onSuccess = {
-                println()
-            },
+            onSuccess = { navigate(ChatDestination) },
             onFailure = {
-                println()
+                println("Connection Fail")
             }
+        )
+    }
+
+    fun discoverPeers() {
+        setStateLoading()
+        p2pService.discoverPeers(
+            onSuccess = {},
+            onFailure = ::handleError
         )
     }
 
@@ -90,8 +80,10 @@ internal class SearchViewModel(
         )
     }
 
-    private fun onClientCreate() {
-        navigate(ChatDestination)
+    private fun handleConnectionStatusChange(status: IConnectionStatus) {
+        if (status == IConnectionStatus.Success) {
+            navHost.navigate(ChatDestination)
+        }
     }
 
 }
